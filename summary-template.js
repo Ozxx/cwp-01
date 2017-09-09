@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const directoryPath = '{directoryPath}';
+const S = "====================================";
 
 function getDirectoryInfo(dirPath) {
     fs.readdir(dirPath, (error, data) => {
@@ -31,44 +32,41 @@ function createBaseDirectory(dirPath) {
     return baseDirectoryPath;
 }
 
-function getCopyright() {
-    let copyright = "";
+function copyTxtFiles(from, to) {
+    const baseName = path.parse(to)['base'];
     fs.readFile('config.json', function (err, data) {
         if (err) {
             throw new Error('Copyright not specified');
         } else {
-            copyright = JSON.parse(data.toString());
-        }
-    });
-    return copyright;
-}
-
-function copyTxtFiles(from, to) {
-    const baseName = path.parse(to)['base'];
-    const copyright = getCopyright();
-    fs.readdir(from, (error, data) => {
-        data.forEach((file) => {
-            fs.stat(from + '/' + file, (error, state) => {
-                const node = from + '/' + file;
-                if (file !== baseName) {
-                    if (state.isDirectory()) {
-                        copyTxtFiles(node, to);
-                    } else {
-                        if (path.extname(file).toLowerCase() === '.txt') {
-                            fs.createReadStream(from + '/' +file).pipe(fs.createWriteStream(to + '/' + file));
-                            fs.readFile(to + '/' + file, (err, data) => {
-                                if (err) {
-                                    console.error('');
-                                } else {
-                                    newData = copyright + data.toString() + copyright;
-                                    fs.writeFile(to + '/' + file, newData, 'utf8', () => {});
+            let copyright = JSON.parse(data.toString()).copyright;
+            fs.readdir(from, (error, data) => {
+                data.forEach((file) => {
+                    fs.stat(from + '/' + file, (error, state) => {
+                        const node = from + '/' + file;
+                        if (file !== baseName) {
+                            if (state.isDirectory()) {
+                                copyTxtFiles(node, to);
+                            } else {
+                                if (path.extname(file).toLowerCase() === '.txt') {
+                                    fs.createReadStream(from + '/' + file).pipe(fs.createWriteStream(to + '/' + file));
+                                    fs.readFile(to + '/' + file, (err, data) => {
+                                        if (err) {
+                                            throw new Error('Cant copy ' + file);
+                                        } else {
+                                            let newData = S + copyright + S + '\n'
+                                                + data.toString() + '\n'
+                                                + S + copyright + S + '\n';
+                                            fs.writeFile(to + '/' + file, newData, 'utf8', () => {
+                                            });
+                                        }
+                                    });
                                 }
-                            });
+                            }
                         }
-                    }
-                }
+                    });
+                })
             });
-        })
+        }
     });
 }
 
@@ -82,6 +80,3 @@ try {
 } catch (error) {
     console.log(error.message);
 }
-
-
-
